@@ -14,10 +14,10 @@
 # totally based on Luke Smith's LARBS
 
 
-### GET ARGUMENTS ###
+### OPTIONS AND VARIABLES ###
 
 while getopts ":a:r:b:p:h" o; do case "${o}" in
-  h) printf "Optional arguments for custom use:\\n  -r: Dotfiles repository (local file or url)\\n  -b: Dotfiles repo branch name (default: master)\\n  -p: Dependencies and programs csv (local file or url)\\n  -a: AUR helper (must have pacman-like syntax)\\n  -h: Show this message\\n" && exit ;;
+	h) printf "Optional arguments for custom use:\\n  -r: Dotfiles repository (local file or url)\\n  -p: Dependencies and programs csv (local file or url)\\n  -a: AUR helper (must have pacman-like syntax)\\n  -h: Show this message\\n" && exit ;;
 	r) dotfilesrepo=${OPTARG} && git ls-remote "$dotfilesrepo" || exit ;;
 	b) repobranch=${OPTARG} ;;
 	p) progsfile=${OPTARG} ;;
@@ -25,7 +25,6 @@ while getopts ":a:r:b:p:h" o; do case "${o}" in
 	*) printf "Invalid option: -%s\\n" "$OPTARG" && exit ;;
 esac done
 
-# -z option checks if string is zero
 [ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/infiltrator29/.dotfiles.git"
 [ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/infiltrator29/PickledLinux/master/progs.csv"
 [ -z "$aurhelper" ] && aurhelper="yay"
@@ -35,24 +34,57 @@ name=$(whoami)
 
 ### FUNCTIONS ###
 
-installpkg(){ pacman --noconfirm --needed -S "$1" >/dev/null 2>&1 ;}
-grepseq="\"^[PGA]*,\""
+if type xbps-install >/dev/null 2>&1; then
+	installpkg(){ xbps-install -y "$1" >/dev/null 2>&1 ;}
+	grepseq="\"^[PGV]*,\""
+elif type apt >/dev/null 2>&1; then
+	installpkg(){ apt-get install -y "$1" >/dev/null 2>&1 ;}
+	grepseq="\"^[PGU]*,\""
+else
+	installpkg(){ pacman --noconfirm --needed -S "$1" >/dev/null 2>&1 ;}
+	grepseq="\"^[PGA]*,\""
+fi
 
-error() { clear; printf "Oops... :( You have an EROOR:\\n%s\\n" "$1"; exit;}
+error() { clear; printf "ERROR:\\n%s\\n" "$1"; exit;}
 
-welcomemsg() {\
-  dialog --title "Welcome!" --msgbox "\
-  Welcome to PickledLinux!\\n\\n\
-  This script will help you install utility packages and configs for a fully functional Linux desktop.\\n\\n\
+welcomemsg() { \
+	dialog --title "Welcome!" --msgbox "Welcome to Luke's Auto-Rice Bootstrapping Script!\\n\\nThis script will automatically install a fully-featured Linux desktop, which I use as my main machine.\\n\\n-Luke" 10 60
+	}
 
-  It's a really fast and enjoyable ride!\\n\\n\
+selectdotfiles() { \
+	edition="$(dialog --title "Select LARBS version." --menu "Select which version of LARBS you wish to have as default:" 10 70 2 i3 "The classic version of LARBS using i3." dwm "The version of LARBS using suckless's dwm." custom "If you are supplying commandline options for LARBS." 3>&1 1>&2 2>&3 3>&1)" || error "User exited."
+	}
 
-  NOTE: this script is based on LARBS <larbs.xyz>" 10 60
-}
+#getuserandpass() { \
+#  # Prompts user for new username an password.
+#  name=$(dialog --inputbox "First, please enter a name for the user account." 10 60 3>&1 1>&2 2>&3 3>&1) || exit
+#  while ! echo "$name" | grep "^[a-z_][a-z0-9_-]*$" >/dev/null 2>&1; do
+#    name=$(dialog --no-cancel --inputbox "Username not valid. Give a username beginning with a letter, with only lowercase letters, - or _." 10 60 3>&1 1>&2 2>&3 3>&1)
+#  done
+#  pass1=$(dialog --no-cancel --passwordbox "Enter a password for that user." 10 60 3>&1 1>&2 2>&3 3>&1)
+#  pass2=$(dialog --no-cancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+#  while ! [ "$pass1" = "$pass2" ]; do
+#    unset pass2
+#    pass1=$(dialog --no-cancel --passwordbox "Passwords do not match.\\n\\nEnter password again." 10 60 3>&1 1>&2 2>&3 3>&1)
+#    pass2=$(dialog --no-cancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+#  done ;}
+
+#usercheck() { \
+#  ! (id -u "$name" >/dev/null) 2>&1 ||
+#  dialog --colors --title "WARNING!" --yes-label "CONTINUE" --no-label "No wait..." --yesno "The user \`$name\` already exists on this system. LARBS can install for a user already existing, but it will \\Zboverwrite\\Zn any conflicting settings/dotfiles on the user account.\\n\\nLARBS will \\Zbnot\\Zn overwrite your user files, documents, videos, etc., so don't worry about that, but only click <CONTINUE> if you don't mind your settings being overwritten.\\n\\nNote also that LARBS will change $name's password to the one you just gave." 14 70
+#  }
 
 preinstallmsg() { \
 	dialog --title "Let's get this party started!" --yes-label "Let's go!" --no-label "No, nevermind!" --yesno "The rest of the installation will now be totally automated, so you can sit back and relax.\\n\\nIt will take some time, but when done, you can relax even more with your complete system.\\n\\nNow just press <Let's go!> and the system will begin installation!" 13 60 || { clear; exit; }
 	}
+
+#adduserandpass() { \
+#  # Adds user `$name` with password $pass1.
+#  dialog --infobox "Adding user \"$name\"..." 4 50
+#  useradd -m -g wheel -s /bin/bash "$name" >/dev/null 2>&1 ||
+#  usermod -a -G wheel "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
+#  echo "$name:$pass1" | chpasswd
+#  unset pass1 pass2 ;}
 
 refreshkeys() { \
 	dialog --infobox "Refreshing Arch Keyring..." 4 40
@@ -74,9 +106,14 @@ manualinstall() { # Installs $1 manually if not installed. Used only for AUR hel
 	sudo -u "$name" makepkg --noconfirm -si >/dev/null 2>&1
 	cd /tmp || return) ;}
 
+maininstall() { # Installs all needed programs from main repo.
+	dialog --title "LARBS Installation" --infobox "Installing \`$1\` ($n of $total). $1 $2" 5 70
+	installpkg "$1"
+	}
+
 gitmakeinstall() {
 	dir=$(mktemp -d)
-	dialog --title "PickledLinux Installation" --infobox "Installing \`$(basename "$1")\` ($n of $total) via \`git\` and \`make\`. $(basename "$1") $2" 5 70
+	dialog --title "LARBS Installation" --infobox "Installing \`$(basename "$1")\` ($n of $total) via \`git\` and \`make\`. $(basename "$1") $2" 5 70
 	git clone --depth 1 "$1" "$dir" >/dev/null 2>&1
 	cd "$dir" || exit
 	make >/dev/null 2>&1
@@ -84,13 +121,13 @@ gitmakeinstall() {
 	cd /tmp || return ;}
 
 aurinstall() { \
-	dialog --title "PickledLinux Installation" --infobox "Installing \`$1\` ($n of $total) from the AUR. $1 $2" 5 70
+	dialog --title "LARBS Installation" --infobox "Installing \`$1\` ($n of $total) from the AUR. $1 $2" 5 70
 	echo "$aurinstalled" | grep "^$1$" >/dev/null 2>&1 && return
 	sudo -u "$name" $aurhelper -S --noconfirm "$1" >/dev/null 2>&1
 	}
 
 pipinstall() { \
-	dialog --title "PickledLinux Installation" --infobox "Installing the Python package \`$1\` ($n of $total). $1 $2" 5 70
+	dialog --title "LARBS Installation" --infobox "Installing the Python package \`$1\` ($n of $total). $1 $2" 5 70
 	command -v pip || installpkg python-pip >/dev/null 2>&1
 	yes | pip install "$1"
 	}
@@ -120,27 +157,45 @@ putgitrepo() { # Downlods a gitrepo $1 and places the files in $2 only overwriti
 	sudo -u "$name" cp -rfT "$dir/gitrepo" "$2"
 	}
 
+systembeepoff() { dialog --infobox "Getting rid of that retarded error beep sound..." 10 50
+	rmmod pcspkr
+	echo "blacklist pcspkr" > /etc/modprobe.d/nobeep.conf ;}
+
 finalize(){ \
-	dialog --title "All done!" --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place." 12 80
+	dialog --title "All done!" --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place.\\n\\nTo run the new graphical environment, log out and log back in as your new user, then run the command \"startx\" to start the graphical environment (it will start automatically in tty1).\\n\\n.t Luke" 12 80
 	}
 
-### SCRIPT ###
+### THE ACTUAL SCRIPT ###
 
-# Install dialog
-installpkg dialog || error "Stop! You should be a root user. Check if you have an internet connection."
+### This is how everything happens in an intuitive format and order.
 
-welcomemsg || error "User exited." 
+# Check if user is root on Arch distro. Install dialog.
+installpkg dialog ||  error "Are you sure you're running this as the root user and have an internet connection?"
 
+# Welcome user and pick dotfiles.
+welcomemsg || error "User exited."
+#selectdotfiles || error "User exited."
+
+# Get and verify username and password.
+#getuserandpass || error "User exited."
+
+# Give warning if user already exists.
+#usercheck || error "User exited."
+
+# Last chance for user to back out before install.
 preinstallmsg || error "User exited."
+
+### The rest of the script requires no user input.
+
+#adduserandpass || error "Error adding username and/or password."
 
 # Refresh Arch keyrings.
 # refreshkeys || error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
-dialog --title "PickledLinux Installation" --infobox "Installing \`basedevel\` and \`git\` for installing other software." 5 70
+dialog --title "LARBS Installation" --infobox "Installing \`basedevel\` and \`git\` for installing other software." 5 70
 installpkg base-devel
 installpkg git
 [ -f /etc/sudoers.pacnew ] && cp /etc/sudoers.pacnew /etc/sudoers # Just in case
-
 
 # Allow user to run sudo without password. Since AUR programs must be installed
 # in a fakeroot environment, this is required for all builds with AUR.
@@ -149,7 +204,6 @@ newperms "%wheel ALL=(ALL) NOPASSWD: ALL"
 # Make pacman and yay colorful and adds eye candy on the progress bar because why not.
 grep "^Color" /etc/pacman.conf >/dev/null || sed -i "s/^#Color/Color/" /etc/pacman.conf
 grep "ILoveCandy" /etc/pacman.conf >/dev/null || sed -i "/#VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
-
 
 # Use all cores for compilation.
 sed -i "s/-j2/-j$(nproc)/;s/^#MAKEFLAGS/MAKEFLAGS/" /etc/makepkg.conf
@@ -166,11 +220,22 @@ installationloop
 putgitrepo "$dotfilesrepo" "/home/$name" "$repobranch"
 rm -f "/home/$name/README.md" "/home/$name/LICENSE"
 
+# Most important command! Get rid of the beep!
+#systembeepoff
 
 # This line, overwriting the `newperms` command above will allow the user to run
 # serveral important commands, `shutdown`, `reboot`, updating, etc. without a password.
-newperms "%wheel ALL=(ALL) ALL #PickledLinux
+newperms "%wheel ALL=(ALL) ALL #LARBS
 %wheel ALL=(ALL) NOPASSWD: /usr/bin/shutdown,/usr/bin/reboot,/usr/bin/systemctl suspend,/usr/bin/wifi-menu,/usr/bin/mount,/usr/bin/umount,/usr/bin/pacman -Syu,/usr/bin/pacman -Syyu,/usr/bin/packer -Syu,/usr/bin/packer -Syyu,/usr/bin/systemctl restart NetworkManager,/usr/bin/rc-service NetworkManager restart,/usr/bin/pacman -Syyu --noconfirm,/usr/bin/loadkeys,/usr/bin/yay,/usr/bin/pacman -Syyuw --noconfirm"
+
+# Make zsh the default shell for the user
+#sed -i "s/^$name:\(.*\):\/bin\/.*/$name:\1:\/bin\/zsh/" /etc/passwd
+
+# dbus UUID must be generated for Artix runit
+#dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Let LARBS know the WM it's supposed to run.
+#echo "$edition" > "/home/$name/.local/share/larbs/wm"; chown "$name:wheel" "/home/$name/.local/share/larbs/wm"
 
 # Last message! Install complete!
 finalize
