@@ -1,0 +1,25 @@
+1.  Start with minimalist Arch Linux install.
+    packages: base, base-devel, linux, linux-firmware
+    
+    Installed with polish and english guide (wiki.archlinux.org).
+
+2.  Installed tools and packages:
+    grub, os-prober, gvim, xterm, [audio packages]
+    
+    Network:
+    wget, net-tools, networkmanager, network-manager-applet, wireless_tools, wpa_supplicant
+
+    Xorg:
+    pacman -S xorg-server xf86-input-evdev xf86-input-mouse xf86-input-keyboard mesa xorg-apps xorg-xinit
+
+    testing Xorg:
+    xorg-twm xorg-xclock xorg-xload
+
+3.  To install:
+    man, man-db, man-pages, texinfo, acpi, acpid, awesome-git, bash-completion,
+calibre, colorz, compton-tryone-git, dart-sass, dhcpd, dmenu, dnsmasq, escrotum-git,
+fasd, fff, figlet, firefox, font-manager, gimp, gotop, gpick, hdparm, htop, inkscape,
+ipython, lftp, libreoffice-fresh, lxappearance, lxsession, nemo, neofetch, nerd-fonts,source-code-pro,
+ntfs-3g, numlockx, pandoc-citeproc, python, python-colorthief, python-pip, python-virtualenv,
+r, ranger, slock, spotify, st-luke-git, sxiv, the_silver_searcher, tmux, vi, vlc,
+w3m, wpgtk-git, xarchiver, xdg-user-dirs, zathura-pdf-mupdf, sc-im
