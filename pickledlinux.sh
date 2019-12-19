@@ -27,7 +27,7 @@ esac done
 
 # -z option checks if string is zero
 [ -z "$dotfilesrepo" ] && dotfilesrepo="https://github.com/infiltrator29/.dotfiles.git"
-[ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/LukeSmithxyz/LARBS/master/progs.csv"
+[ -z "$progsfile" ] && progsfile="https://raw.githubusercontent.com/infiltrator29/PickledLinux/master/progs.csv"
 [ -z "$aurhelper" ] && aurhelper="yay"
 [ -z "$repobranch" ] && repobranch="master"
 
