@@ -1,0 +1,7 @@
+yay -Sy st-luke-git
+yay -Sy awesome-git
+yay -Sy awesome-git
+yay -Sy nerd-font-complete
+sudo pacman -Sy firefox
+sudo pacman -Sy zsh
+sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
